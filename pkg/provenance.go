@@ -119,6 +119,18 @@ func GenerateProvenance(name, digest, command, envs string) ([]byte, error) {
 	invEnv["arch"] = os.Getenv("RUNNER_ARCH")
 	invEnv["os"] = os.Getenv("ImageOS")
 
+	// Add details about the runner's OS to the materials
+	var imageMaterials = slsa02.ProvenanceMaterial{
+		URI: fmt.Sprintf("https://github.com/actions/virtual-environments/releases/tag/%s/%s", os.Getenv("ImageOS"), os.Getenv("ImageVersion")),
+		// TODO: capture the digest here too - do we do a simple tag->digest
+		// mapping and trust the tag has not been replaced?
+		// gh api -H "Accept: application/vnd.github.v3+json" /repos/actions/virtual-environments/git/matching-refs/tags/ubuntu20/20220425.1
+		// Digest: slsa02.DigestSet{
+		// 	"sha1": "decafbad",
+		// },
+	}
+	p.Predicate.Materials = append(p.Predicate.Materials, imageMaterials)
+
 	// Sign the provenance.
 	s := sigstore.NewDefaultSigner()
 	att, err := s.Sign(ctx, p)
